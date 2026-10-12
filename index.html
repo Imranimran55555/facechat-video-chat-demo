@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FaceChat — Video + Chat</title>
+<style>
+:root{--bg:#0d1118;--panel:#171e29;--panel2:#202a38;--text:#f4f7fb;--muted:#9eacbf;--accent:#7c9cff;--green:#42d6a4;--danger:#ff6577}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+button,input{font:inherit}
+.app{min-height:100vh;display:flex;flex-direction:column}
+.topbar{height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;border-bottom:1px solid #273141;background:#101620}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.2px;font-size:19px}
+.logo{width:34px;height:34px;border-radius:12px;background:linear-gradient(135deg,#7c9cff,#8f7bff);display:grid;place-items:center;font-size:18px}
+.status{font-size:12px;color:var(--green);background:#15342f;border:1px solid #205448;border-radius:999px;padding:6px 10px}
+.workspace{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;padding:16px;flex:1;min-height:0}
+.call-area{min-width:0;display:flex;flex-direction:column;gap:12px}
+.call-header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:2px 2px 4px}
+.call-header h1{font-size:18px;margin:0}.call-header p{font-size:12px;color:var(--muted);margin:3px 0 0}
+.pill{font-size:12px;color:var(--muted);border:1px solid #344154;padding:5px 9px;border-radius:999px}
+.stage{position:relative;flex:1;min-height:380px;background:#202a37;border-radius:22px;overflow:hidden;border:1px solid #2c394a;display:grid;place-items:center}
+.remote-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 35%,#37485f 0%,#202b3a 48%,#151d28 100%)}
+.person{position:relative;display:flex;flex-direction:column;align-items:center;gap:12px;z-index:1}
+.avatar{width:126px;height:126px;border-radius:50%;display:grid;place-items:center;font-size:50px;background:linear-gradient(145deg,#a3b8ff,#5d6cbb);border:4px solid #dbe3ff;box-shadow:0 12px 40px #0005}
+.person strong{font-size:16px}.person span{font-size:12px;color:#d0d9e7}
+.remote-label{position:absolute;left:16px;bottom:16px;z-index:2;background:#0d1118b8;border:1px solid #ffffff1c;padding:8px 11px;border-radius:12px;font-size:12px}
+.self-preview{position:absolute;right:16px;top:16px;width:clamp(105px,20%,190px);aspect-ratio:4/3;border-radius:16px;overflow:hidden;background:#0d1118;border:2px solid #ffffff55;box-shadow:0 8px 28px #0007;z-index:3}
+.self-preview video{width:100%;height:100%;object-fit:cover;display:block;transform:scaleX(-1)}
+.self-placeholder{height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:5px;background:linear-gradient(145deg,#293b51,#151c27);font-size:28px}
+.self-placeholder small{font-size:10px;color:#d2dbea}
+.controls{display:flex;justify-content:center;align-items:center;gap:10px;padding:8px 0}
+.ctrl{width:46px;height:46px;border:1px solid #354154;border-radius:16px;background:#202a38;color:var(--text);cursor:pointer;font-size:18px}
+.ctrl:hover{filter:brightness(1.15)}.ctrl.off{background:#4b2730;border-color:#7d3c4b}.ctrl.end{width:auto;padding:0 20px;background:var(--danger);border-color:var(--danger);font-size:14px;font-weight:700}
+.note{text-align:center;color:var(--muted);font-size:11px;margin-top:-5px}
+.chat{min-height:520px;display:flex;flex-direction:column;background:var(--panel);border:1px solid #283445;border-radius:20px;overflow:hidden}
+.chat-head{padding:17px 16px;border-bottom:1px solid #2a3545;display:flex;align-items:center;justify-content:space-between}
+.chat-head h2{margin:0;font-size:16px}.chat-head p{margin:3px 0 0;color:var(--muted);font-size:11px}
+.chat-head .online{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;margin-right:6px}
+.messages{flex:1;min-height:280px;max-height:calc(100vh - 245px);overflow:auto;padding:16px;display:flex;flex-direction:column;gap:13px}
+.msg{max-width:88%;display:flex;flex-direction:column;gap:4px;align-self:flex-start}
+.msg.mine{align-self:flex-end;align-items:flex-end}
+.sender{font-size:10px;color:var(--muted)}
+.bubble{padding:10px 12px;border-radius:14px 14px 14px 4px;background:#273343;color:#edf2fa;overflow-wrap:anywhere}
+.mine .bubble{background:#5c76d8;border-radius:14px 14px 4px 14px}
+.time{font-size:9px;color:#8e9caf}
+.chat-form{padding:12px;border-top:1px solid #2a3545;display:flex;gap:8px}
+.chat-form input{min-width:0;flex:1;border-radius:13px;border:1px solid #354154;background:#0f151e;color:var(--text);padding:11px 12px;outline:none}
+.chat-form input:focus{border-color:var(--accent)}
+.send{border:0;border-radius:13px;background:var(--accent);color:#10182a;padding:0 15px;font-weight:800;cursor:pointer}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#f1f5ff;color:#172137;border-radius:12px;padding:10px 14px;box-shadow:0 8px 25px #0006;display:none;z-index:10;font-size:13px}
+@media(max-width:900px){.workspace{grid-template-columns:1fr}.stage{min-height:55vh}.chat{min-height:420px}.messages{max-height:420px}}
+@media(max-width:520px){.topbar{padding:0 14px;height:58px}.workspace{padding:10px;gap:12px}.stage{min-height:410px;border-radius:18px}.avatar{width:100px;height:100px;font-size:42px}.self-preview{right:10px;top:10px}.call-header h1{font-size:16px}.status{font-size:10px}.controls{gap:7px}.ctrl{width:42px;height:42px;border-radius:14px}.ctrl.end{padding:0 14px}.chat{border-radius:17px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><div class="logo">◉</div><span>FaceChat</span></div>
+    <div class="status">● Demo call</div>
+  </header>
+  <main class="workspace">
+    <section class="call-area">
+      <div class="call-header">
+        <div><h1>Video call</h1><p>Face-to-face conversation, with chat beside it</p></div>
+        <span class="pill">Private room · Demo</span>
+      </div>
+      <div class="stage">
+        <div class="remote-bg"></div>
+        <div class="person">
+          <div class="avatar">🙂</div>
+          <strong>Alex Morgan</strong>
+          <span id="remoteState">Waiting for a real participant</span>
+        </div>
+        <div class="self-preview">
+          <video id="localVideo" autoplay muted playsinline hidden></video>
+          <div class="self-placeholder" id="selfPlaceholder">👤<small>You · camera off</small></div>
+        </div>
+        <div class="remote-label">Alex Morgan · Remote participant preview</div>
+      </div>
+      <div class="controls">
+        <button class="ctrl" id="cameraBtn" title="Toggle camera" aria-label="Toggle camera">📷</button>
+        <button class="ctrl off" id="micBtn" title="Toggle microphone" aria-label="Toggle microphone">🎙️</button>
+        <button class="ctrl" id="shareBtn" title="Screen sharing demo" aria-label="Screen sharing">▣</button>
+        <button class="ctrl end" id="endBtn">End demo</button>
+      </div>
+      <div class="note">Prototype UI: the large tile represents the other person; your camera stays small in the corner.</div>
+    </section>
+    <aside class="chat">
+      <div class="chat-head">
+        <div><h2>Live chat</h2><p><span class="online"></span>Chat stays visible during the call</p></div>
+        <span class="pill" id="messageCount">3 messages</span>
+      </div>
+      <div class="messages" id="messages" aria-live="polite">
+        <div class="msg"><span class="sender">Alex · 10:42</span><div class="bubble">Hey! Can you hear me okay?</div></div>
+        <div class="msg mine"><span class="sender">You · 10:42</span><div class="bubble">Yep! I can also send messages while we talk.</div></div>
+        <div class="msg"><span class="sender">Alex · 10:43</span><div class="bubble">Nice — the video stays big and your preview stays small.</div></div>
+      </div>
+      <form class="chat-form" id="chatForm">
+        <input id="chatInput" type="text" maxlength="500" placeholder="Write a message…" autocomplete="off" aria-label="Write a message">
+        <button class="send" type="submit">Send ➤</button>
+      </form>
+    </aside>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const video = document.getElementById('localVideo');
+const placeholder = document.getElementById('selfPlaceholder');
+const cameraBtn = document.getElementById('cameraBtn');
+const micBtn = document.getElementById('micBtn');
+const toast = document.getElementById('toast');
+let stream = null, micOn = false, cameraOn = false, count = 3, toastTimer;
+function notify(message){
+  toast.textContent = message; toast.style.display = 'block';
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>toast.style.display='none', 2600);
+}
+cameraBtn.addEventListener('click', async () => {
+  if (cameraOn) {
+    if (stream) stream.getVideoTracks().forEach(t => { t.stop(); stream.removeTrack(t); });
+    video.srcObject = null; video.hidden = true; placeholder.hidden = false;
+    cameraOn = false; cameraBtn.classList.remove('off');
+    placeholder.innerHTML = '👤<small>You · camera off</small>';
+    notify('Camera turned off');
+    return;
+  }
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({video:true, audio:false});
+    video.srcObject = stream; video.hidden = false; placeholder.hidden = true;
+    cameraOn = true; cameraBtn.classList.add('off');
+    notify('Camera preview enabled on this device');
+  } catch (e) {
+    notify('Camera access failed. Open on HTTPS or localhost and allow camera permission.');
+  }
+});
+micBtn.addEventListener('click', async () => {
+  if (!micOn) {
+    try {
+      if (!stream || stream.getAudioTracks().length === 0) {
+        const audioStream = await navigator.mediaDevices.getUserMedia({audio:true, video:false});
+        if (!stream) stream = audioStream;
+        else audioStream.getAudioTracks().forEach(t => stream.addTrack(t));
+      }
+      stream.getAudioTracks().forEach(t => t.enabled = true);
+      micOn = true; micBtn.classList.remove('off'); notify('Microphone enabled locally');
+    } catch (e) {
+      notify('Microphone access failed. Check browser permissions.');
+    }
+  } else {
+    if (stream) stream.getAudioTracks().forEach(t => t.enabled = false);
+    micOn = false; micBtn.classList.add('off'); notify('Microphone muted');
+  }
+});
+document.getElementById('shareBtn').addEventListener('click', () => notify('Screen sharing is planned for the next build.'));
+document.getElementById('endBtn').addEventListener('click', () => {
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  stream = null; cameraOn = false; micOn = false; video.srcObject = null;
+  video.hidden = true; placeholder.hidden = false;
+  placeholder.innerHTML = '👤<small>You · camera off</small>';
+  cameraBtn.classList.remove('off'); micBtn.classList.add('off');
+  notify('Demo call ended — this is a UI prototype, not a connected call.');
+});
+document.getElementById('chatForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const input = document.getElementById('chatInput');
+  const value = input.value.trim();
+  if (!value) return;
+  const wrap = document.createElement('div'); wrap.className = 'msg mine';
+  const sender = document.createElement('span'); sender.className = 'sender'; sender.textContent = 'You · now';
+  const bubble = document.createElement('div'); bubble.className = 'bubble'; bubble.textContent = value;
+  wrap.append(sender, bubble); document.getElementById('messages').appendChild(wrap);
+  document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+  input.value = ''; count++;
+  document.getElementById('messageCount').textContent = count + ' messages';
+});
+</script>
+</body>
+</html>
